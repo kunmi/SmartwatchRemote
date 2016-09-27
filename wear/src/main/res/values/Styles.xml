@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Wear theme. -->
+    <style name="WearTheme" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowSwipeToDismiss">false</item>
+        </style>
+
+    <style name="view_center_bars">
+        <item name="android:layout_width">8dp</item>
+        <item name="android:layout_height">15dp</item>
+        <item name="android:background">@drawable/rectangle</item>
+        <item name="android:layout_marginRight">2dp</item>
+    </style>
+
+</resources>
