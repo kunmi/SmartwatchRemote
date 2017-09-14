@@ -1,0 +1,6 @@
+#JSGF V1.0;
+
+grammar menu;
+
+public <item> = next| save | previous| exit | print | okay | dictation | erase |
+                green | yellow | blue | orange | red | white | black | purple | indigo | small | big;

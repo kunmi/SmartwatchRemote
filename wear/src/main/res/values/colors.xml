@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="textColorBlack">#D8000000</color>
+    <color name="textColor">#D8FFFFFF</color>
+    <color name="bottomConfigLayoutColor">#37474F</color>
+
+
+    <color name="buttonActive">#00695C</color>
+    <color name="buttonInactive">#37474F</color>
+</resources>
