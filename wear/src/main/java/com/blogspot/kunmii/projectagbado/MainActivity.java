@@ -54,16 +54,6 @@ import edu.cmu.pocketsphinx.RecognitionListener;
 
 public class MainActivity extends Activity {
 
-    public enum TestMode {
-
-        Normal,
-        Test_1, //Only Mouse No Speech
-        Test_2_MenuNav,
-        Test_3_SpeechOnly, //only speech
-        Test_4_ScrollMode //Scroll as tilt
-    }
-
-    public TestMode mode = TestMode.Normal;
     public WatchViewStub stub;
 
     String TAG = "KunmiWEAR";
@@ -253,7 +243,7 @@ public class MainActivity extends Activity {
                     return;
                 }
 
-                runSpeechRecognizerSetup();
+                //runSpeechRecognizerSetup();
 
                 mSensorHelper.addAccelerometerListener(new ISensorUpdateListener() {
                     @Override
@@ -335,12 +325,6 @@ public class MainActivity extends Activity {
                                 double y = values[1] - previousRotation[1];
                                 double z = values[2] - previousRotation[2];
 
-                                //TO be determined
-                                //values =  mSensorHelper.lowPass(values,values, 2.5f);
-
-//                                Utils.logData("GYRO","Azimuth: "+values[0]+", Pitch: "+values[1] + ", Roll: "+values[2] +
-                                //                                      ", GRAVITY: "+mGravity[0] + ", "+mGravity[1] + ", " + mGravity[2] );
-
                                 previousRotation = values;
 
 
@@ -379,42 +363,24 @@ public class MainActivity extends Activity {
                                         realValues[0] = 0;
 
 
-                                    // Utils.logData("GYRO","Azimuth: "+values[0]+", Pitch: "+values[1] + ", Roll: "+values[2] +
-                                    //       ", SENT: "+realValues[0] + ", "+realValues[1] + ", " + realValues[2] );
-
-
                                     if (Math.abs(realValues[0]) > deadzone || Math.abs(realValues[1]) > deadzone || Math.abs(realValues[2]) > deadzone) {
 
                                         //TestCheck
-                                        if(mode == TestMode.Test_4_ScrollMode)
-                                        {
-                                            String data = Utils.buildJson(Utils.DataType.SCROLL, realValues);
-                                            if (data != null) {
-                                                lastValZero = false;
-                                                transferToNetworkHelper(data);
-                                                Utils.logData("DATA", data);
-                                            }
-                                        }
-
-                                        else{
                                             String data = Utils.buildJson(Utils.DataType.GYRO, realValues);
                                             if (data != null) {
                                                 lastValZero = false;
                                                 transferToNetworkHelper(data);
                                                 Utils.logData("DATA", data);
                                             }
-                                        }
 
                                     }
                                     //Needed to reset joystick to zero
                                     else {
                                         if (!lastValZero) {
                                             lastValZero = true;
-                                            if(mode != TestMode.Test_4_ScrollMode) {
                                                 String data = Utils.buildJson(Utils.DataType.GYRO, new float[]{0, 0, 0});
                                                 transferToNetworkHelper(data);
                                                 Utils.logData("DATA", data);
-                                            }
                                         }
                                     }
 
@@ -518,19 +484,7 @@ public class MainActivity extends Activity {
         dictionary.put("exit", "EXIT");
         dictionary.put("erase", "clear");
         dictionary.put("dictation", "dict");
-        //TEST   |  |  |  |  |  |  |  |
-        dictionary.put("green","green");
-        dictionary.put("yellow","yellow");
-        dictionary.put("blue","blue");
-        dictionary.put("orange","orange");
-        dictionary.put("red","red");
-        dictionary.put("white","white");
-        dictionary.put("black","black");
-        dictionary.put("purple","purple");
-        dictionary.put("indigo","indigo");
-        dictionary.put("small","small");
-        dictionary.put("big","big");
-
+ 
         if(adapter.mSpeechStatusTextView!=null)
             adapter.mSpeechStatusTextView.setText("Setting Up Speech");
 

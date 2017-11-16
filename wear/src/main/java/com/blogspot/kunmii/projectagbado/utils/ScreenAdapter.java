@@ -39,8 +39,7 @@ public class ScreenAdapter extends PagerAdapter {
     View button2;
     TextView button1Text;
     TextView button2Text;
-    String[] configItems = new String[]{"Toggle orientation", "Speak Long", "Calibrate Tilt", "Close App", "Exit Menu",
-            "Test Case 1", "Test UI 2", "Test UI 3", "Test UI 4"
+    String[] configItems = new String[]{"Toggle orientation", "Speak Long", "Calibrate Tilt", "Close App", "Exit Menu"
     };
 
     float screenRotation = 0f;
@@ -132,24 +131,6 @@ public class ScreenAdapter extends PagerAdapter {
             });
 
 
-            button1.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (activity.mode == MainActivity.TestMode.Test_4_ScrollMode) {
-                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, activity.dictionary.get("previous")));
-                    }
-                }
-            });
-
-            button2.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (activity.mode == MainActivity.TestMode.Test_4_ScrollMode) {
-                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, activity.dictionary.get("next")));
-                    }
-                }
-            });
-
             button1.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -157,22 +138,15 @@ public class ScreenAdapter extends PagerAdapter {
 
                     switch (action) {
                         case (MotionEvent.ACTION_DOWN):
-                            if (activity.mode == MainActivity.TestMode.Test_4_ScrollMode) {
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, activity.dictionary.get("previous")));
-                                button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                            } else {
                                 activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.DOWN));
                                 button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                            }
                             break;
                         case (MotionEvent.ACTION_OUTSIDE):
                         case (MotionEvent.ACTION_CANCEL):
                         case (MotionEvent.ACTION_UP):
-                            if (activity.mode != MainActivity.TestMode.Test_4_ScrollMode) {
                                 activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.UP));
-                            }
-                            button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
-                            break;
+                                button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
+                                break;
 
                     }
                     return true;
@@ -186,20 +160,13 @@ public class ScreenAdapter extends PagerAdapter {
 
                     switch (action) {
                         case (MotionEvent.ACTION_DOWN):
-                            if (activity.mode == MainActivity.TestMode.Test_4_ScrollMode) {
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, activity.dictionary.get("next")));
-                                button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                            } else {
                                 activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "R", Utils.Touchtype.DOWN));
                                 button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                            }
-                            break;
+                                break;
                         case (MotionEvent.ACTION_OUTSIDE):
                         case (MotionEvent.ACTION_CANCEL):
                         case (MotionEvent.ACTION_UP):
-                            if (activity.mode != MainActivity.TestMode.Test_4_ScrollMode) {
                                 activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "R", Utils.Touchtype.UP));
-                            }
                             button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
                     }
                     return true;
@@ -516,38 +483,6 @@ public class ScreenAdapter extends PagerAdapter {
                         activity.mDismissOverlayView.show();
                         break;
                     case 4:
-                        hideSettingsListView();
-                        break;
-                    //FOR TESTS
-                    case 5: //TEST 1
-                        activity.mode = MainActivity.TestMode.Test_1;
-                        button1.setVisibility(View.VISIBLE);
-                        button1Text.setText("L");
-                        button2.setVisibility(View.VISIBLE);
-                        button2Text.setText("R");
-                        Toast.makeText(activity,"Re-caliberate",Toast.LENGTH_SHORT).show();
-                        hideSettingsListView();
-                        break;
-                    case 6: //Test 2
-                        activity.mode = MainActivity.TestMode.Test_2_MenuNav;
-                        prepChromeMenuListView();
-                        //hideSettingsListView();
-
-                        break;
-                    case 7: //Test 3
-                        button1.setVisibility(View.INVISIBLE);
-                        button2.setVisibility(View.INVISIBLE);
-                        activity.tiltCalibrated = false;
-                        activity.mode = MainActivity.TestMode.Test_3_SpeechOnly;
-                        hideSettingsListView();
-                        break;
-                    case 8: //Test 4
-                        button1.setVisibility(View.GONE);
-                        button1Text.setText("Prev");
-                        button2.setVisibility(View.VISIBLE);
-                        button2Text.setText("Next");
-                        activity.mode = MainActivity.TestMode.Test_4_ScrollMode;
-                        Toast.makeText(activity,"Re-caliberate",Toast.LENGTH_SHORT).show();
                         hideSettingsListView();
                         break;
 
