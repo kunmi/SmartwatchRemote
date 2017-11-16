@@ -24,12 +24,25 @@ public class Utils {
         TOUCH,
         SPEECH,
         SCROLL,
-        SHORTCUT
+        SHORTCUT,
+        DPAD
     }
 
     public enum Touchtype{
         DOWN,
         UP
+    }
+
+    public enum TouchTypeDPAD{
+        C,
+        UL,
+        U,
+        UR,
+        L,
+        R,
+        DL,
+        D,
+        DR
     }
 
     public static final String DATA_PATH = "/ip";
@@ -93,6 +106,67 @@ public class Utils {
         }
         return str;
     }
+
+    public static String buildJson(DataType type,TouchTypeDPAD val){
+        String str = null;
+        try {
+            JSONObject object = new JSONObject();
+            object.put("type", type.name());
+
+            JSONObject vals = new JSONObject();
+
+            switch (val)
+            {
+                case C:
+                    vals.put("v", -1);
+                    break;
+
+                case UL:
+                    vals.put("v", 31500);
+                    break;
+
+                case U:
+                    vals.put("v", 0);
+                    break;
+
+                case UR:
+                    vals.put("v", 4500);
+                    break;
+
+                case L:
+                    vals.put("v", 27000);
+                    break;
+
+                case R:
+                    vals.put("v", 9000);
+                    break;
+
+                case DL:
+                    vals.put("v", 22500);
+                    break;
+
+                case D:
+                    vals.put("v", 18000);
+                    break;
+
+                case DR:
+                    vals.put("v", 13500);
+                    break;
+            }
+
+            object.put("values",vals);
+            str = object.toString();
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return str;
+    }
+
+
+
+
+
     public static String buildJson(DataType type, String string){
         String str = null;
         try {

@@ -15,17 +15,20 @@ import android.speech.RecognizerIntent;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
+import android.support.v4.view.ViewPager;
 import android.support.wearable.view.DismissOverlayView;
 import android.support.wearable.view.WatchViewStub;
 import android.support.wearable.view.WearableListView;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.blogspot.kunmii.projectagbado.utils.ScreenAdapter;
 import com.blogspot.kunmii.projectagbado.utils.SpeechRecognizerHelper;
 import com.blogspot.kunmii.projectagbado.utils.UDPHelper;
 import com.blogspot.kunmii.projectagbado.utils.Utils;
@@ -51,7 +54,7 @@ import edu.cmu.pocketsphinx.RecognitionListener;
 
 public class MainActivity extends Activity {
 
-    enum TestMode {
+    public enum TestMode {
 
         Normal,
         Test_1, //Only Mouse No Speech
@@ -60,30 +63,16 @@ public class MainActivity extends Activity {
         Test_4_ScrollMode //Scroll as tilt
     }
 
-    TestMode mode = TestMode.Normal;
-    WatchViewStub stub;
+    public TestMode mode = TestMode.Normal;
+    public WatchViewStub stub;
 
     String TAG = "KunmiWEAR";
-    String ip = "192.168.178.1";
+    public String ip = "192.168.0.108";
 
     Activity activity;
-    DismissOverlayView mDismissOverlayView;
-    private TextView mStatusTextView;
-    private TextView mSpeechStatusTextView;
-    private WearableListView listview;
-    View button1;
-    View button2;
-    TextView button1Text;
-    TextView button2Text;
-
-   AdapterWearable menuListViewAdapter;
+    public DismissOverlayView mDismissOverlayView;
 
     Vibrator vibrator;
-
-    String[] configItems = new String[]{"Toggle orientation", "Speak Long", "Calibrate Tilt", "Close App", "Exit Menu",
-            //Entered for Test Purposes
-            "Test Case 1", "Test UI 2", "Test UI 3", "Test UI 4"
-    };
 
     //Handles long press to exi
     GestureDetector mDetector;
@@ -98,20 +87,20 @@ public class MainActivity extends Activity {
 
     float[] previousRotation = null;
     int calibrationSamples = 20;
-    boolean freeMode = false;
-    float screenRotation = 0f;
 
     public float[] mGravity;
     float[] mLinearAcceleration;
-    float[] mGeomagnetic;
+
 
     boolean lastValZero = false;
 
-    boolean tiltCalibrated = false;
-    boolean tiltCalibrationMode = false;
+    public boolean tiltCalibrated = false;
+    public boolean tiltCalibrationMode = false;
 
-    List<float[]> tiltCalibrationSamples = new ArrayList<>();
+    public List<float[]> tiltCalibrationSamples = new ArrayList<>();
     float[] tiltCenter;
+    float deadzone = 1.0f;
+
 
     PipeLine pipeLine;
     boolean audioAvailable = false;
@@ -122,30 +111,25 @@ public class MainActivity extends Activity {
     MediaPlayer listeningAwakeAudio;
     MediaPlayer commandSuccessfulAudio;
     MediaPlayer errorAudio;
-    SpeechRecognizerHelper speechRecognizerHelper;
+    public SpeechRecognizerHelper speechRecognizerHelper;
     boolean listening = false;
+    public boolean freeMode = false;
 
-    HashMap<String, String> dictionary = new HashMap<>();
+
+    public HashMap<String, String> dictionary = new HashMap<>();
 
 
     //Settings Related
-    SharedPreferences preferencesCompat;
+    public SharedPreferences preferencesCompat;
     private GoogleApiClient mGoogleApiClient;
-    DataApi.DataListener dataListener;
+    public DataApi.DataListener dataListener;
+
+    ScreenAdapter adapter = null;
+
+
 
     //Network Related
     UDPHelper udp;
-
-
-
-    //MENU TEST
-    String[] chromeMenu = new String[]{"Tab Options", "Bookmark / History", "Settings", "Exit"};
-    String[] tabOptions = new String[]{"Open Last Tab","Save Page","Incognito","<- Back"};
-    String[] bookmarkOptions = new String[] {"Bookmarks","Bookmark - Manager", "History", "Downloads" , "<- Back"};
-    String[] SettingsOptions = new String[] {"Clear Data","Developer Tools","Open Feedback Form","<- Back"};
-
-
-
 
 
     @Override
@@ -158,34 +142,6 @@ public class MainActivity extends Activity {
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
 
-        dataListener = new DataApi.DataListener() {
-            @Override
-            public void onDataChanged(DataEventBuffer dataEvents) {
-                for (DataEvent event : dataEvents) {
-                    if (event.getType() == DataEvent.TYPE_CHANGED) {
-                        // DataItem changed
-                        DataItem item = event.getDataItem();
-                        if (item.getUri().getPath().compareTo(Utils.DATA_PATH) == 0) {
-                            DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
-                            ip = dataMap.getString(Utils.IP_SETTINGS_KEY);
-                            SharedPreferences.Editor editSettings = preferencesCompat.edit();
-                            editSettings.putString(Utils.IP_SETTINGS_KEY, ip);
-                            editSettings.apply();
-                            editSettings.commit();
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    mStatusTextView.setText("IP changed please restart");
-                                }
-                            });
-
-                        }
-                    } else if (event.getType() == DataEvent.TYPE_DELETED) {
-                        // DataItem deleted
-                    }
-                }
-            }
-        };
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
                 .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
@@ -215,6 +171,7 @@ public class MainActivity extends Activity {
 
         mSensorHelper = SensorHelper.getInstance(this);
 
+
         //check for audio
         audioAvailable = Utils.checkAudioDeviceAvailability(this);
 
@@ -232,6 +189,7 @@ public class MainActivity extends Activity {
                 mDismissOverlayView.showIntroIfNecessary();
                 mDismissOverlayView.setLongClickable(true);
 
+
                 mDetector = new GestureDetector(activity, new GestureDetector.SimpleOnGestureListener() {
 
                     @Override
@@ -242,22 +200,15 @@ public class MainActivity extends Activity {
                 });
 
 
+                ViewPager viewPager = (ViewPager) stub.findViewById(R.id.viewPager);
+                adapter = new ScreenAdapter((MainActivity) activity);
+                viewPager.setAdapter(adapter);
+
+
+
+
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-
-                mStatusTextView = (TextView) stub.findViewById(R.id.status);
-                mSpeechStatusTextView = (TextView) stub.findViewById(R.id.speechStatus);
-
-                View configButton = stub.findViewById(R.id.configureText);
-                View configButtonLayout = stub.findViewById(R.id.menuLayout);
-
-                button1 = stub.findViewById(R.id.button1);
-                button2 = stub.findViewById(R.id.button2);
-
-                button1Text = (TextView) stub.findViewById(R.id.button1Text);
-                button2Text = (TextView) stub.findViewById(R.id.button2Text);
-
-                mStatusTextView.setText(ip);
                 preferencesCompat.registerOnSharedPreferenceChangeListener(new SharedPreferences.OnSharedPreferenceChangeListener() {
                     @Override
                     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
@@ -265,105 +216,6 @@ public class MainActivity extends Activity {
                     }
                 });
 
-
-
-                listview = (WearableListView) stub.findViewById(R.id.wearable_list);
-                menuListViewAdapter =  new AdapterWearable(getApplicationContext(), configItems);
-                listview.setAdapter(menuListViewAdapter);
-
-                prepUpMenuListView();
-
-
-
-                configButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        showSettingsListView();
-                    }
-                });
-
-                configButtonLayout.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        showSettingsListView();
-                    }
-                });
-
-
-                button1.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if(mode == TestMode.Test_4_ScrollMode)
-                        {
-                            transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("previous")));
-                        }
-                    }
-                });
-
-                button2.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if(mode == TestMode.Test_4_ScrollMode)
-                        {
-                            transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("next")));
-                        }
-                    }
-                });
-
-                button1.setOnTouchListener(new View.OnTouchListener() {
-                    @Override
-                    public boolean onTouch(View view, MotionEvent motionEvent) {
-                        int action = MotionEventCompat.getActionMasked(motionEvent);
-
-
-                        switch (action) {
-                            case (MotionEvent.ACTION_DOWN):
-                                if(mode == TestMode.Test_4_ScrollMode)
-                                {
-                                    transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("previous")));
-                                    button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                                }
-                                else {
-                                    transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.DOWN));
-                                    button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                                }
-                                    break;
-                            case (MotionEvent.ACTION_UP):
-                                if(mode!=TestMode.Test_4_ScrollMode) {
-                                    transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.UP));
-                                }
-                                button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
-
-                        }
-                        return true;
-                    }
-                });
-
-                button2.setOnTouchListener(new View.OnTouchListener() {
-                    @Override
-                    public boolean onTouch(View view, MotionEvent motionEvent) {
-                        int action = MotionEventCompat.getActionMasked(motionEvent);
-
-                        switch (action) {
-                            case (MotionEvent.ACTION_DOWN):
-                                if(mode == TestMode.Test_4_ScrollMode) {
-                                    transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("next")));
-                                    button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                                }
-                                else {
-                                    transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "R", Utils.Touchtype.DOWN));
-                                    button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                                }
-                                break;
-                            case (MotionEvent.ACTION_UP):
-                                if(mode!= TestMode.Test_4_ScrollMode) {
-                                    transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "R", Utils.Touchtype.UP));
-                                }
-                                button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
-                        }
-                        return true;
-                    }
-                });
 
 
                 //Network
@@ -403,14 +255,14 @@ public class MainActivity extends Activity {
 
                 runSpeechRecognizerSetup();
 
-                mSensorHelper.addAcceleroemterListener(new ISensorUpdateListener() {
+                mSensorHelper.addAccelerometerListener(new ISensorUpdateListener() {
                     @Override
-                    public void onUpdate(SensorEvent event) {
-                        mGravity = mSensorHelper.lowPass(event.values.clone(), mGravity, 0.8f);
+                    public void onUpdate(float[] sensorValues) {
+                        mGravity = mSensorHelper.lowPass(sensorValues, mGravity, 0.8f);
 
                         float[] values = new float[3];
                         for (int i = 0; i < mGravity.length; i++) {
-                            values[i] = event.values[i] - mGravity[i];
+                            values[i] = sensorValues[i] - mGravity[i];
                         }
 
 
@@ -426,18 +278,21 @@ public class MainActivity extends Activity {
 
                         //WATCH FACE DOWN
 
+                        /*
                         if (mGravity != null) {
                             if (!listening) {
                                 if (mGravity[2] < -9 && Math.abs(mGravity[0]) < 4 && Math.abs(mGravity[1]) < 4) {
                                     listening = true;
                                     vibrateDevice(new long[]{0, 50, 100, 50});
-                                    mSpeechStatusTextView.setText("Listening for Keyword");
+
+                                    if(adapter.mSpeechStatusTextView!=null)
+                                    adapter.mSpeechStatusTextView.setText("Listening for Keyword");
                                     speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.KEYWORD_CALLS);
                                     freeMode = false;
                                 }
                             }
                         }
-
+                        */
                         /*
                         //SHAKE
                         if(lastUpdate==0){
@@ -468,29 +323,9 @@ public class MainActivity extends Activity {
                     }
                 });
 
-                mSensorHelper.addMagneticListener(new ISensorUpdateListener() {
+                mSensorHelper.addRotationUpdateListener(new ISensorUpdateListener() {
                     @Override
-                    public void onUpdate(SensorEvent event) {
-                        float[] values = new float[3];
-
-                        mGeomagnetic = mSensorHelper.lowPass(event.values.clone(), mGeomagnetic, 2.5f);
-
-                        if (mGravity != null && mGeomagnetic != null) {
-                            // Gravity rotational data
-                            float[] mRotationMatrix = new float[9];
-                            // Magnetic rotational data
-                            //float[] magnetic = new float[9];
-
-                            SensorManager.getRotationMatrix(mRotationMatrix, null, mGravity, mGeomagnetic);
-                            float[] outGravity = new float[9];
-
-                            //SensorManager.remapCoordinateSystem(gravity, SensorManager.AXIS_X,SensorManager.AXIS_Z, outGravity);
-                            SensorManager.getOrientation(mRotationMatrix, values);
-
-                            values[0] = values[0] * 57.2957795f; //azimuth
-                            values[1] = values[1] * 57.2957795f;   // pitch
-                            values[2] = values[2] * 57.2957795f;   //roll
-
+                    public void onUpdate(float[] values) {
 
                             if (previousRotation == null) {
                                 previousRotation = values.clone();
@@ -548,7 +383,7 @@ public class MainActivity extends Activity {
                                     //       ", SENT: "+realValues[0] + ", "+realValues[1] + ", " + realValues[2] );
 
 
-                                    if (Math.abs(realValues[0]) > 0.1 || Math.abs(realValues[1]) > 0.1 || Math.abs(realValues[2]) > 0.1) {
+                                    if (Math.abs(realValues[0]) > deadzone || Math.abs(realValues[1]) > deadzone || Math.abs(realValues[2]) > deadzone) {
 
                                         //TestCheck
                                         if(mode == TestMode.Test_4_ScrollMode)
@@ -587,10 +422,6 @@ public class MainActivity extends Activity {
 
                             }
 
-                            //mLinearAcceleration = null;
-                            //mGeomagnetic = null;
-
-                        }
 
 
                     }
@@ -599,6 +430,29 @@ public class MainActivity extends Activity {
         });
     }
 
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_NAVIGATE_NEXT:
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("next")));
+                return true;
+            case KeyEvent.KEYCODE_NAVIGATE_PREVIOUS:
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("previous")));
+                return true;
+            case KeyEvent.KEYCODE_NAVIGATE_IN:
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("Return")));
+                return true;
+            case KeyEvent.KEYCODE_NAVIGATE_OUT:
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("EXIT")));
+                return true;
+        }
+
+
+        return super.onKeyDown(keyCode, event);
+    }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -637,235 +491,7 @@ public class MainActivity extends Activity {
     }
 
 
-    public void showSettingsListView() {
-        listview.setVisibility(View.VISIBLE);
-        listview.smoothScrollToPosition(1);
-    }
 
-    public void hideSettingsListView() {
-        listview.setVisibility(View.GONE);
-    }
-
-    public void prepUpMenuListView()
-    {
-        menuListViewAdapter.updateDataSet(configItems);
-        menuListViewAdapter.notifyDataSetChanged();
-        listview.setClickListener(new WearableListView.ClickListener() {
-            @Override
-            public void onClick(WearableListView.ViewHolder viewHolder) {
-                Integer tag = (Integer) viewHolder.itemView.getTag();
-                switch (tag) {
-                    case 0:
-
-                        screenRotation = screenRotation == 0f ? 90f : 0f;
-                        Utils.flipView(stub, screenRotation);
-                        hideSettingsListView();
-                        break;
-                    case 1:
-                        vibrateDevice(new long[]{50, 50});
-                        testGoogleSpeechRecognizer();
-                        speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.FREE_FORM);
-                        freeMode = true;
-                        hideSettingsListView();
-                        break;
-                    case 2:
-                        Toast.makeText(activity, "Position in favoured center", Toast.LENGTH_SHORT).show();
-                        tiltCalibrated = false;
-                        tiltCalibrationMode = true;
-                        tiltCalibrationSamples.clear();
-                        hideSettingsListView();
-                        break;
-                    case 3:
-                        mDismissOverlayView.show();
-                        break;
-                    case 4:
-                        hideSettingsListView();
-                        break;
-                    //FOR TESTS
-                    case 5: //TEST 1
-                        mode = TestMode.Test_1;
-                        button1.setVisibility(View.VISIBLE);
-                        button1Text.setText("L");
-                        button2.setVisibility(View.VISIBLE);
-                        button2Text.setText("R");
-                        Toast.makeText(activity,"Re-caliberate",Toast.LENGTH_SHORT).show();
-                        hideSettingsListView();
-                        break;
-                    case 6: //Test 2
-                        mode = TestMode.Test_2_MenuNav;
-
-                        prepChromeMenuListView();
-
-
-
-                        //hideSettingsListView();
-
-                        break;
-                    case 7: //Test 3
-                        button1.setVisibility(View.INVISIBLE);
-                        button2.setVisibility(View.INVISIBLE);
-                        tiltCalibrated = false;
-                        mode = TestMode.Test_3_SpeechOnly;
-                        hideSettingsListView();
-                        break;
-                    case 8: //Test 4
-                        button1.setVisibility(View.GONE);
-                        button1Text.setText("Prev");
-                        button2.setVisibility(View.VISIBLE);
-                        button2Text.setText("Next");
-                        mode = TestMode.Test_4_ScrollMode;
-                        Toast.makeText(activity,"Re-caliberate",Toast.LENGTH_SHORT).show();
-                        hideSettingsListView();
-                        break;
-
-                }
-            }
-
-            @Override
-            public void onTopEmptyRegionClick() {
-                hideSettingsListView();
-            }
-        });
-    }
-
-    void prepChromeMenuListView(){
-
-        listview.scrollToPosition(0);
-
-        menuListViewAdapter.updateDataSet(chromeMenu);
-        menuListViewAdapter.notifyDataSetChanged();;
-
-        listview.setClickListener(new WearableListView.ClickListener() {
-            @Override
-            public void onClick(WearableListView.ViewHolder viewHolder) {
-                Integer tag1 = (Integer) viewHolder.itemView.getTag();
-                switch (tag1) {
-                    case 0:
-                        menuListViewAdapter.updateDataSet(tabOptions);
-                        menuListViewAdapter.notifyDataSetChanged();
-                        listview.setClickListener(new WearableListView.ClickListener() {
-                            @Override
-                            public void onClick(WearableListView.ViewHolder viewHolder) {
-                                Integer tag2 = (Integer) viewHolder.itemView.getTag();
-                                switch (tag2)
-                                {
-                                    case 0:
-                                        //last tab
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-lasttab"));
-                                        break;
-                                    case 1:
-                                        //Save page
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-savepage"));
-                                        break;
-                                    case 2:
-                                        //Bookmark
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-incognito"));
-                                        break;
-                                    case 3:
-                                        prepChromeMenuListView();
-                                        //BACK
-
-                                }
-
-                            }
-
-                            @Override
-                            public void onTopEmptyRegionClick() {
-                                prepChromeMenuListView();
-                            }
-                        });
-                        break;
-
-                    case 1:
-                        menuListViewAdapter.updateDataSet(bookmarkOptions);
-                        menuListViewAdapter.notifyDataSetChanged();
-                        listview.setClickListener(new WearableListView.ClickListener() {
-                            @Override
-                            public void onClick(WearableListView.ViewHolder viewHolder) {
-                                Integer tag2 = (Integer) viewHolder.itemView.getTag();
-                                switch (tag2)
-                                {
-                                    case 0:
-                                        //Bookmarks
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-viewbook"));
-                                        break;
-                                    case 1:
-                                        //Bookmark Manager
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-viewbookman"));
-                                        break;
-                                    case 2:
-                                        //History
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-viewhist"));
-                                        break;
-                                    case 3:
-                                        //Downloads
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-dls"));
-                                        break;
-                                    case 4:
-                                        prepChromeMenuListView();
-                                        break;
-                                        //BACK
-
-                                }
-
-                            }
-
-                            @Override
-                            public void onTopEmptyRegionClick() {
-                                prepChromeMenuListView();
-                            }
-                        });
-                        break;
-                    case 2:
-                        menuListViewAdapter.updateDataSet(SettingsOptions);
-                        menuListViewAdapter.notifyDataSetChanged();
-                        listview.setClickListener(new WearableListView.ClickListener() {
-                            @Override
-                            public void onClick(WearableListView.ViewHolder viewHolder) {
-                                Integer tag2 = (Integer) viewHolder.itemView.getTag();
-                                switch (tag2)
-                                {
-                                    case 0:
-                                        //Clear Data
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-cleard"));
-                                        break;
-                                    case 1:
-                                        //DevTools
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-devt"));
-                                        break;
-                                    case 2:
-                                        //Feedback
-                                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-feedback"));
-                                        break;
-                                    case 3:
-                                        prepChromeMenuListView();
-                                        //BACK
-                                        break;
-
-                                }
-
-                            }
-
-                            @Override
-                            public void onTopEmptyRegionClick() {
-                                prepChromeMenuListView();
-                            }
-                        });
-                        break;
-
-                    case 3:
-                        prepUpMenuListView();
-                        break;
-                }
-
-            }
-
-            @Override
-            public void onTopEmptyRegionClick() {
-                prepUpMenuListView();
-            }
-        });
-    }
 
 
     @Override
@@ -905,31 +531,34 @@ public class MainActivity extends Activity {
         dictionary.put("small","small");
         dictionary.put("big","big");
 
-        mSpeechStatusTextView.setText("Setting Up Speech");
+        if(adapter.mSpeechStatusTextView!=null)
+            adapter.mSpeechStatusTextView.setText("Setting Up Speech");
 
 
         speechRecognizerHelper = new SpeechRecognizerHelper(activity, new SpeechRecognizerSetupListener() {
             @Override
             public void onSuccessfulInitialization() {
-                mSpeechStatusTextView.setText("Speech Setup, Complete :)");
+                if(adapter.mSpeechStatusTextView!=null)
+                    adapter.mSpeechStatusTextView.setText("Speech Setup, Complete :)");
             }
 
             @Override
             public void onFailedInitialization() {
-                mSpeechStatusTextView.setText("Speech Setup, FAILED :(");
+                if(adapter.mSpeechStatusTextView!=null)
+                    adapter.mSpeechStatusTextView.setText("Speech Setup, FAILED :(");
             }
         });
         speechRecognizerHelper.startInitialization(new RecognitionListener() {
             @Override
             public void onBeginningOfSpeech() {
-                mSpeechStatusTextView.setText("Listening");
+                if(adapter.mSpeechStatusTextView!=null)
+                    adapter.mSpeechStatusTextView.setText("Listening");
             }
 
             @Override
             public void onEndOfSpeech() {
-                mSpeechStatusTextView.setText("Speech Setup, Complete :)");
-                //if (!speechRecognizerHelper.getRecognizer().getSearchName().equals(speechRecognizerHelper.WAKEUP_CALL))
-                //speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.WAKEUP_CALL);
+                if(adapter.mSpeechStatusTextView!=null)
+                    adapter.mSpeechStatusTextView.setText("Speech Setup, Complete :)");
                 speechRecognizerHelper.pauseRecognizer();
             }
 
@@ -955,7 +584,8 @@ public class MainActivity extends Activity {
                         } else {
                             freeMode = true;
                             vibrateDevice(new long[]{0, 100, 200, 100, 200, 400});
-                            mSpeechStatusTextView.setText("Start Dictating");
+                            if(adapter.mSpeechStatusTextView!=null)
+                                adapter.mSpeechStatusTextView.setText("Start Dictating");
                             speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.FREE_FORM);
                             return;
                         }
@@ -971,19 +601,22 @@ public class MainActivity extends Activity {
                         listening = false;
                         freeMode = false;
                         Log.d("Kunmi", hypothesis.getHypstr());
-                        mSpeechStatusTextView.setText("Speech Sleeping");
+                        if(adapter.mSpeechStatusTextView!=null)
+                            adapter.mSpeechStatusTextView.setText("Speech Sleeping");
                     }
                 } else {
                     listening = false;
                     freeMode = false;
                     Log.d("Kunmi", hypothesis.getHypstr());
-                    mSpeechStatusTextView.setText("Speech Sleeping");
+                    if(adapter.mSpeechStatusTextView!=null)
+                        adapter.mSpeechStatusTextView.setText("Speech Sleeping");
                 }
             }
 
             @Override
             public void onError(Exception e) {
-                mSpeechStatusTextView.setText("Speech: " + e.getMessage());
+                if(adapter.mSpeechStatusTextView!=null)
+                    adapter.mSpeechStatusTextView.setText("Speech: " + e.getMessage());
             }
 
             @Override
@@ -991,7 +624,8 @@ public class MainActivity extends Activity {
                 //play timeout
                 playAudio(errorAudio);
                 freeMode = false;
-                mSpeechStatusTextView.setText("Speech Sleeping");
+                if(adapter.mSpeechStatusTextView!=null)
+                adapter.mSpeechStatusTextView.setText("Speech Sleeping");
                 speechRecognizerHelper.pauseRecognizer();
                 listening = false;
             }
@@ -1026,9 +660,11 @@ public class MainActivity extends Activity {
     }
 
 
+
+
     private static final int SPEECH_REQUEST_CODE = 777;
 
-    void testGoogleSpeechRecognizer() {
+    public void testGoogleSpeechRecognizer() {
 
 // Create an intent that can start the Speech Recognizer activity
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -1052,6 +688,9 @@ public class MainActivity extends Activity {
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
+
+
+
 
 
 }
