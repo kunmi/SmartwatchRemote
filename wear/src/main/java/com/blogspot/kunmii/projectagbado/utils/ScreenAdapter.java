@@ -6,12 +6,14 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.wearable.view.WearableListView;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -214,6 +216,12 @@ public class ScreenAdapter extends PagerAdapter {
             container.addView(rootView);
             return rootView;
         }
+        else if (position == 2)
+        {
+            View rootView = activity.getLayoutInflater().inflate(R.layout.globelayout, container, false);
+            container.addView(rootView);
+            return rootView;
+        }
 
         return null;
     }
@@ -290,7 +298,7 @@ public class ScreenAdapter extends PagerAdapter {
 
     @Override
     public int getCount() {
-        return 2;
+        return 3;
     }
 
     @Override
@@ -301,145 +309,6 @@ public class ScreenAdapter extends PagerAdapter {
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
         container.removeView((FrameLayout) object);
-    }
-
-
-    void prepChromeMenuListView(){
-
-        listview.scrollToPosition(0);
-
-        menuListViewAdapter.updateDataSet(chromeMenu);
-        menuListViewAdapter.notifyDataSetChanged();;
-
-        listview.setClickListener(new WearableListView.ClickListener() {
-            @Override
-            public void onClick(WearableListView.ViewHolder viewHolder) {
-                Integer tag1 = (Integer) viewHolder.itemView.getTag();
-                switch (tag1) {
-                    case 0:
-                        menuListViewAdapter.updateDataSet(tabOptions);
-                        menuListViewAdapter.notifyDataSetChanged();
-                        listview.setClickListener(new WearableListView.ClickListener() {
-                            @Override
-                            public void onClick(WearableListView.ViewHolder viewHolder) {
-                                Integer tag2 = (Integer) viewHolder.itemView.getTag();
-                                switch (tag2)
-                                {
-                                    case 0:
-                                        //last tab
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-lasttab"));
-                                        break;
-                                    case 1:
-                                        //Save page
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-savepage"));
-                                        break;
-                                    case 2:
-                                        //Bookmark
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-incognito"));
-                                        break;
-                                    case 3:
-                                        prepChromeMenuListView();
-                                        //BACK
-
-                                }
-
-                            }
-
-                            @Override
-                            public void onTopEmptyRegionClick() {
-                                prepChromeMenuListView();
-                            }
-                        });
-                        break;
-
-                    case 1:
-                        menuListViewAdapter.updateDataSet(bookmarkOptions);
-                        menuListViewAdapter.notifyDataSetChanged();
-                        listview.setClickListener(new WearableListView.ClickListener() {
-                            @Override
-                            public void onClick(WearableListView.ViewHolder viewHolder) {
-                                Integer tag2 = (Integer) viewHolder.itemView.getTag();
-                                switch (tag2)
-                                {
-                                    case 0:
-                                        //Bookmarks
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-viewbook"));
-                                        break;
-                                    case 1:
-                                        //Bookmark Manager
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-viewbookman"));
-                                        break;
-                                    case 2:
-                                        //History
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-viewhist"));
-                                        break;
-                                    case 3:
-                                        //Downloads
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-dls"));
-                                        break;
-                                    case 4:
-                                        prepChromeMenuListView();
-                                        break;
-                                    //BACK
-
-                                }
-
-                            }
-
-                            @Override
-                            public void onTopEmptyRegionClick() {
-                                prepChromeMenuListView();
-                            }
-                        });
-                        break;
-                    case 2:
-                        menuListViewAdapter.updateDataSet(SettingsOptions);
-                        menuListViewAdapter.notifyDataSetChanged();
-                        listview.setClickListener(new WearableListView.ClickListener() {
-                            @Override
-                            public void onClick(WearableListView.ViewHolder viewHolder) {
-                                Integer tag2 = (Integer) viewHolder.itemView.getTag();
-                                switch (tag2)
-                                {
-                                    case 0:
-                                        //Clear Data
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-cleard"));
-                                        break;
-                                    case 1:
-                                        //DevTools
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-devt"));
-                                        break;
-                                    case 2:
-                                        //Feedback
-                                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.SHORTCUT,"chrome-feedback"));
-                                        break;
-                                    case 3:
-                                        prepChromeMenuListView();
-                                        //BACK
-                                        break;
-                                }
-
-                            }
-
-                            @Override
-                            public void onTopEmptyRegionClick() {
-                                prepChromeMenuListView();
-                            }
-                        });
-                        break;
-
-                    case 3:
-                        prepUpMenuListView();
-                        break;
-                }
-
-            }
-
-            @Override
-            public void onTopEmptyRegionClick() {
-                prepUpMenuListView();
-            }
-        });
     }
 
     public void showSettingsListView() {

@@ -25,6 +25,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -88,7 +89,7 @@ public class MainActivity extends Activity {
     public boolean tiltCalibrationMode = false;
 
     public List<float[]> tiltCalibrationSamples = new ArrayList<>();
-    float[] tiltCenter;
+    float[] tiltCenter = null;
     float deadzone = 1.0f;
 
 
@@ -116,11 +117,11 @@ public class MainActivity extends Activity {
 
     ScreenAdapter adapter = null;
 
-
+    //Needed for the dynamic tilt centering; The positon of the watch at touch point becomes the new center
+    boolean screenTouched = false;
 
     //Network Related
     UDPHelper udp;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,6 +160,7 @@ public class MainActivity extends Activity {
 
         stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
 
+
         mSensorHelper = SensorHelper.getInstance(this);
 
 
@@ -193,8 +195,6 @@ public class MainActivity extends Activity {
                 ViewPager viewPager = (ViewPager) stub.findViewById(R.id.viewPager);
                 adapter = new ScreenAdapter((MainActivity) activity);
                 viewPager.setAdapter(adapter);
-
-
 
 
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -351,7 +351,15 @@ public class MainActivity extends Activity {
                                     }
                                 }
 
-                                if (tiltCalibrated) {
+                                //tiltCalibrated
+                                if (screenTouched) {
+
+
+                                    if(tiltCenter == null)
+                                    {
+                                        tiltCenter = values;
+                                        return;
+                                    }
 
                                     float[] realValues = new float[3];
                                     realValues[0] = (values[0] - tiltCenter[0]) / 15;
@@ -369,8 +377,10 @@ public class MainActivity extends Activity {
                                             String data = Utils.buildJson(Utils.DataType.GYRO, realValues);
                                             if (data != null) {
                                                 lastValZero = false;
-                                                transferToNetworkHelper(data);
-                                                Utils.logData("DATA", data);
+                                                if(screenTouched) {
+                                                    transferToNetworkHelper(data);
+                                                    Utils.logData("DATA", data);
+                                                }
                                             }
 
                                     }
@@ -384,6 +394,10 @@ public class MainActivity extends Activity {
                                         }
                                     }
 
+                                }
+                                else
+                                {
+                                    tiltCenter = null;
                                 }
 
                             }
@@ -423,8 +437,22 @@ public class MainActivity extends Activity {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 
+        int action = MotionEventCompat.getActionMasked(event);
+
+        switch (action) {
+            case (MotionEvent.ACTION_DOWN):
+                Toast.makeText(activity, "Pressed", Toast.LENGTH_SHORT).show();
+                break;
+            case (MotionEvent.ACTION_OUTSIDE):
+            case (MotionEvent.ACTION_CANCEL):
+            case (MotionEvent.ACTION_UP):
+                Toast.makeText(activity, "Released", Toast.LENGTH_SHORT).show();
+                break;
+        }
+
         return mDetector.onTouchEvent(event) || super.onTouchEvent(event);
     }
+
 
     @Override
     protected void onResume() {
@@ -457,9 +485,6 @@ public class MainActivity extends Activity {
     }
 
 
-
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String[] permissions, int[] grantResults) {
@@ -484,7 +509,7 @@ public class MainActivity extends Activity {
         dictionary.put("exit", "EXIT");
         dictionary.put("erase", "clear");
         dictionary.put("dictation", "dict");
- 
+
         if(adapter.mSpeechStatusTextView!=null)
             adapter.mSpeechStatusTextView.setText("Setting Up Speech");
 
@@ -644,6 +669,25 @@ public class MainActivity extends Activity {
     }
 
 
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+
+        int action = MotionEventCompat.getActionMasked(ev);
+
+        switch (action) {
+            case (MotionEvent.ACTION_DOWN):
+                screenTouched = true;
+                break;
+            case (MotionEvent.ACTION_OUTSIDE):
+            case (MotionEvent.ACTION_CANCEL):
+            case (MotionEvent.ACTION_UP):
+                screenTouched = false;
+                break;
+
+        }
+       return super.dispatchTouchEvent(ev);
+
+    }
 
 
 
