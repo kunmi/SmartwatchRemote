@@ -5,10 +5,12 @@ import android.content.SharedPreferences;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.VelocityTrackerCompat;
 import android.support.wearable.view.WearableListView;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -34,14 +36,14 @@ import com.google.android.gms.wearable.DataMapItem;
 public class ScreenAdapter extends PagerAdapter {
 
     MainActivity activity = null;
-    private TextView mStatusTextView;
+    public TextView mStatusTextView;
     public TextView mSpeechStatusTextView;
-    private WearableListView listview;
-    View button1;
-    View button2;
-    TextView button1Text;
-    TextView button2Text;
-    String[] configItems = new String[]{"Toggle orientation", "Speak Long", "Calibrate Tilt", "Close App", "Exit Menu"
+    public WearableListView listview;
+    public View button1;
+    public View button2;
+    public TextView button1Text;
+    public TextView button2Text;
+    public String[] configItems = new String[]{"Toggle orientation", "Speak Long", "Calibrate Tilt", "Close App", "Exit Menu"
     };
 
     float screenRotation = 0f;
@@ -53,7 +55,7 @@ public class ScreenAdapter extends PagerAdapter {
     String[] bookmarkOptions = new String[] {"Bookmarks","Bookmark - Manager", "History", "Downloads" , "<- Back"};
     String[] SettingsOptions = new String[] {"Clear Data","Developer Tools","Open Feedback Form","<- Back"};
 
-    AdapterWearable menuListViewAdapter;
+    public AdapterWearable menuListViewAdapter;
 
 
     public ScreenAdapter(MainActivity act)
@@ -64,22 +66,19 @@ public class ScreenAdapter extends PagerAdapter {
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
 
-        if (position == 0) {
 
-            View rootView = activity.getLayoutInflater().inflate(R.layout.default_page, container, false);
-
-
+        if (position == 0)
+        {
+            View rootView = activity.getLayoutInflater().inflate(R.layout.globelayout, container, false);
             mStatusTextView = (TextView) rootView.findViewById(R.id.status);
-            mSpeechStatusTextView = (TextView) rootView.findViewById(R.id.speechStatus);
-
-            View configButton = rootView.findViewById(R.id.configureText);
             View configButtonLayout = rootView.findViewById(R.id.menuLayout);
 
-            button1 = rootView.findViewById(R.id.button1);
-            button2 = rootView.findViewById(R.id.button2);
+            View trackpad = rootView.findViewById(R.id.trackPad);
+            setAsTrackPad(trackpad);
 
-            button1Text = (TextView) rootView.findViewById(R.id.button1Text);
-            button2Text = (TextView) rootView.findViewById(R.id.button2Text);
+
+            View swicthButton = rootView.findViewById(R.id.switchButton);
+            setAsSwitchButton(swicthButton);
 
             mStatusTextView.setText(activity.ip);
 
@@ -118,13 +117,6 @@ public class ScreenAdapter extends PagerAdapter {
 
             prepUpMenuListView();
 
-            configButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    showSettingsListView();
-                }
-            });
-
             configButtonLayout.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -133,98 +125,15 @@ public class ScreenAdapter extends PagerAdapter {
             });
 
 
-            button1.setOnTouchListener(new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View view, MotionEvent motionEvent) {
-                    int action = MotionEventCompat.getActionMasked(motionEvent);
-
-                    switch (action) {
-                        case (MotionEvent.ACTION_DOWN):
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.DOWN));
-                                button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                            break;
-                        case (MotionEvent.ACTION_OUTSIDE):
-                        case (MotionEvent.ACTION_CANCEL):
-                        case (MotionEvent.ACTION_UP):
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.UP));
-                                button1.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
-                                break;
-
-                    }
-                    return true;
-                }
-            });
-
-            button2.setOnTouchListener(new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View view, MotionEvent motionEvent) {
-                    int action = MotionEventCompat.getActionMasked(motionEvent);
-
-                    switch (action) {
-                        case (MotionEvent.ACTION_DOWN):
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "R", Utils.Touchtype.DOWN));
-                                button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                                break;
-                        case (MotionEvent.ACTION_OUTSIDE):
-                        case (MotionEvent.ACTION_CANCEL):
-                        case (MotionEvent.ACTION_UP):
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "R", Utils.Touchtype.UP));
-                            button2.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
-                    }
-                    return true;
-                }
-            });
 
             container.addView(rootView);
 
-            return rootView;
-        }
-        else if (position == 1)
-        {
-            View rootView = activity.getLayoutInflater().inflate(R.layout.gamepad_page, container, false);
-
-            rootView.findViewById(R.id.upleftButton).setOnTouchListener(dpadTouchListener);
-            rootView.findViewById(R.id.upButton).setOnTouchListener(dpadTouchListener);
-            rootView.findViewById(R.id.upRightButton).setOnTouchListener(dpadTouchListener);
-            rootView.findViewById(R.id.leftButton).setOnTouchListener(dpadTouchListener);
-            rootView.findViewById(R.id.rightButton).setOnTouchListener(dpadTouchListener);
-            rootView.findViewById(R.id.downLeft).setOnTouchListener(dpadTouchListener);
-            rootView.findViewById(R.id.downButton).setOnTouchListener(dpadTouchListener);
-            rootView.findViewById(R.id.downRight).setOnTouchListener(dpadTouchListener);
-
-            rootView.findViewById(R.id.actionButton).setOnTouchListener(new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View view, MotionEvent motionEvent) {
-                    int action = MotionEventCompat.getActionMasked(motionEvent);
-
-                    switch (action) {
-                        case (MotionEvent.ACTION_DOWN):
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.DOWN));
-                                view.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
-                            break;
-                        case (MotionEvent.ACTION_OUTSIDE):
-                        case (MotionEvent.ACTION_CANCEL):
-                        case (MotionEvent.ACTION_UP):
-                                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.UP));
-                                view.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
-                    }
-                    return true;
-                }
-            });
-
-
-            container.addView(rootView);
-            return rootView;
-        }
-        else if (position == 2)
-        {
-            View rootView = activity.getLayoutInflater().inflate(R.layout.globelayout, container, false);
-            container.addView(rootView);
             return rootView;
         }
 
         return null;
     }
+
 
     View.OnTouchListener dpadTouchListener = new View.OnTouchListener() {
         @Override
@@ -295,10 +204,92 @@ public class ScreenAdapter extends PagerAdapter {
 
     }
 
+    private VelocityTracker mVelocityTracker = null;
+
+    public void setAsTrackPad(final View v)
+    {
+        v.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent event) {
+                int index = event.getActionIndex();
+                int action = event.getActionMasked();
+                int pointerId = event.getPointerId(index);
+
+                switch(action) {
+                    case MotionEvent.ACTION_DOWN:
+
+                        //transmit Mouse Down
+                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.DOWN));
+                        v.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonActive));
+
+
+                        if(mVelocityTracker == null) {
+                            // Retrieve a new VelocityTracker object to watch the
+                            // velocity of a motion.
+                            mVelocityTracker = VelocityTracker.obtain();
+                        }
+                        else {
+                            // Reset the velocity tracker back to its initial state.
+                            mVelocityTracker.clear();
+                        }
+                        // Add a user's movement to the tracker.
+                        mVelocityTracker.addMovement(event);
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        mVelocityTracker.addMovement(event);
+
+                        mVelocityTracker.computeCurrentVelocity(100);
+
+                        String data = Utils.buildJson(Utils.DataType.GYRO, new float[]{
+                                0,
+                                VelocityTrackerCompat.getYVelocity(mVelocityTracker, pointerId),
+                                VelocityTrackerCompat.getXVelocity(mVelocityTracker, pointerId)
+                        });
+                        activity.transferToNetworkHelper(data);
+
+
+                        /*
+                        Log.d("Kunmi", "X velocity: " +
+                                VelocityTrackerCompat.getXVelocity(mVelocityTracker,
+                                        pointerId));
+                        Log.d("Kunmi", "Y velocity: " +
+                                VelocityTrackerCompat.getYVelocity(mVelocityTracker,
+                                        pointerId));
+                        */
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+
+                        activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.TOUCH, "L", Utils.Touchtype.UP));
+                        v.setBackgroundColor(ContextCompat.getColor(activity, R.color.buttonInactive));
+                        String data2 = Utils.buildJson(Utils.DataType.GYRO, new float[]{0, 0, 0});
+                        //activity.transferToNetworkHelper(data2);
+
+                        //Log.d("Kunmi", "CANCEL");
+
+                        // Return a VelocityTracker object back to be re-used by others.
+                        mVelocityTracker = null;
+                        break;
+                }
+                return true;
+            }
+        });
+    }
+
+    public void setAsSwitchButton(final View v)
+    {
+        v.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                activity.transferToNetworkHelper(Utils.buildJson(Utils.DataType.KEYPAD, "m"));
+            }
+        });
+
+    }
 
     @Override
     public int getCount() {
-        return 3;
+        return 1;
     }
 
     @Override

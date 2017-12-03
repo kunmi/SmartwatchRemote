@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
     public WatchViewStub stub;
 
     String TAG = "KunmiWEAR";
-    public String ip = "192.168.0.108";
+    public String ip = "169.254.167.231";
 
     Activity activity;
     public DismissOverlayView mDismissOverlayView;
@@ -191,10 +191,79 @@ public class MainActivity extends Activity {
 
                 });
 
+//TODO CLEAR VIEWPAGER
 
-                ViewPager viewPager = (ViewPager) stub.findViewById(R.id.viewPager);
+                //ViewPager viewPager = (ViewPager) stub.findViewById(R.id.viewPager);
                 adapter = new ScreenAdapter((MainActivity) activity);
-                viewPager.setAdapter(adapter);
+                //viewPager.setAdapter(adapter);
+
+                //start here
+
+                adapter.mStatusTextView = (TextView) stub.findViewById(R.id.status);
+                View configButtonLayout = stub.findViewById(R.id.menuLayout);
+
+                View trackpad = stub.findViewById(R.id.trackPad);
+                adapter.setAsTrackPad(trackpad);
+
+                View swicthButton = stub.findViewById(R.id.switchButton);
+                adapter.setAsSwitchButton(swicthButton);
+
+                adapter.mStatusTextView.setText(ip);
+
+                dataListener = new DataApi.DataListener() {
+                    @Override
+                    public void onDataChanged(DataEventBuffer dataEvents) {
+                        for (DataEvent event : dataEvents) {
+                            if (event.getType() == DataEvent.TYPE_CHANGED) {
+                                // DataItem changed
+                                DataItem item = event.getDataItem();
+                                if (item.getUri().getPath().compareTo(Utils.DATA_PATH) == 0) {
+                                    DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+                                    ip = dataMap.getString(Utils.IP_SETTINGS_KEY);
+                                    SharedPreferences.Editor editSettings = preferencesCompat.edit();
+                                    editSettings.putString(Utils.IP_SETTINGS_KEY, ip);
+                                    editSettings.apply();
+                                    editSettings.commit();
+                                    activity.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            adapter.mStatusTextView.setText("IP changed please restart");
+                                        }
+                                    });
+
+                                }
+                            } else if (event.getType() == DataEvent.TYPE_DELETED) {
+                                // DataItem deleted
+                            }
+                        }
+                    }
+                };
+
+                adapter.listview = (WearableListView) stub.findViewById(R.id.wearable_list);
+                adapter.menuListViewAdapter = new AdapterWearable(activity.getApplicationContext(), adapter.configItems);
+                adapter.listview.setAdapter(adapter.menuListViewAdapter);
+
+                adapter.prepUpMenuListView();
+
+                configButtonLayout.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        adapter.showSettingsListView();
+                    }
+                });
+
+
+
+                //end here
+
+
+
+
+
+
+
+
+
 
 
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -233,17 +302,8 @@ public class MainActivity extends Activity {
                     }
                 }).start();
 
+                /*
 
-                //SPEEEEEEEECH RECOGNIZER PART
-
-                // Check if user has given permission to record audio
-                int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
-                if (permissionCheck == PackageManager.PERMISSION_DENIED) {
-                    ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSIONS_REQUEST_RECORD_AUDIO);
-                    return;
-                }
-
-                //runSpeechRecognizerSetup();
 
                 mSensorHelper.addAccelerometerListener(new ISensorUpdateListener() {
                     @Override
@@ -266,50 +326,7 @@ public class MainActivity extends Activity {
                         //FOR GYRO
                         mLinearAcceleration = values.clone();
 
-                        //WATCH FACE DOWN
 
-                        /*
-                        if (mGravity != null) {
-                            if (!listening) {
-                                if (mGravity[2] < -9 && Math.abs(mGravity[0]) < 4 && Math.abs(mGravity[1]) < 4) {
-                                    listening = true;
-                                    vibrateDevice(new long[]{0, 50, 100, 50});
-
-                                    if(adapter.mSpeechStatusTextView!=null)
-                                    adapter.mSpeechStatusTextView.setText("Listening for Keyword");
-                                    speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.KEYWORD_CALLS);
-                                    freeMode = false;
-                                }
-                            }
-                        }
-                        */
-                        /*
-                        //SHAKE
-                        if(lastUpdate==0){
-                            lastUpdate = System.currentTimeMillis();
-                            return;
-                        }
-                        long curTime = System.currentTimeMillis();
-
-                        // only allow one update every 100ms.
-                        if ((curTime - lastUpdate) > 100) {
-                            long diffTime = (curTime - lastUpdate);
-                            lastUpdate = curTime;
-
-                            float x = values[0];
-                            float y = values[1];
-                            float z = values[2];
-
-                            float speed = Math.abs(x+y+z - last_x - last_y - last_z) / diffTime * 10000;
-
-                            if (speed > SHAKE_THRESHOLD) {
-                                vibrateDevice(new long[]{0,50,100,50});
-                                mSpeechStatusTextView.setText("Listening for Keyword");
-                                speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.KEYWORD_CALLS);
-                                freeMode = false;
-                            }
-                    }
-                    */
                     }
                 });
 
@@ -405,7 +422,7 @@ public class MainActivity extends Activity {
 
 
                     }
-                });
+                }); */
             }
         });
     }
@@ -417,42 +434,22 @@ public class MainActivity extends Activity {
 
         switch (keyCode) {
             case KeyEvent.KEYCODE_NAVIGATE_NEXT:
-                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("next")));
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.KEYPAD, "j"));
                 return true;
             case KeyEvent.KEYCODE_NAVIGATE_PREVIOUS:
-                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("previous")));
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.KEYPAD, "l"));
                 return true;
             case KeyEvent.KEYCODE_NAVIGATE_IN:
-                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("Return")));
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.KEYPAD, "j"));
                 return true;
             case KeyEvent.KEYCODE_NAVIGATE_OUT:
-                transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get("EXIT")));
+                transferToNetworkHelper(Utils.buildJson(Utils.DataType.KEYPAD, "l"));
                 return true;
         }
 
 
         return super.onKeyDown(keyCode, event);
     }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-
-        int action = MotionEventCompat.getActionMasked(event);
-
-        switch (action) {
-            case (MotionEvent.ACTION_DOWN):
-                Toast.makeText(activity, "Pressed", Toast.LENGTH_SHORT).show();
-                break;
-            case (MotionEvent.ACTION_OUTSIDE):
-            case (MotionEvent.ACTION_CANCEL):
-            case (MotionEvent.ACTION_UP):
-                Toast.makeText(activity, "Released", Toast.LENGTH_SHORT).show();
-                break;
-        }
-
-        return mDetector.onTouchEvent(event) || super.onTouchEvent(event);
-    }
-
 
     @Override
     protected void onResume() {

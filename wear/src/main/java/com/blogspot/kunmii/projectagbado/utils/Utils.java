@@ -25,7 +25,8 @@ public class Utils {
         SPEECH,
         SCROLL,
         SHORTCUT,
-        DPAD
+        DPAD,
+        KEYPAD
     }
 
     public enum Touchtype{
