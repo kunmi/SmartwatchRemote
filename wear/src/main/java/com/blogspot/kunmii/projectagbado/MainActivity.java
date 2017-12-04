@@ -1,21 +1,13 @@
 package com.blogspot.kunmii.projectagbado;
 
-import android.Manifest;
 import android.app.Activity;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.hardware.SensorEvent;
-import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
-import android.speech.RecognizerIntent;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
-import android.support.v4.view.ViewPager;
 import android.support.wearable.view.DismissOverlayView;
 import android.support.wearable.view.WatchViewStub;
 import android.support.wearable.view.WearableListView;
@@ -25,11 +17,10 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.blogspot.kunmii.projectagbado.utils.ScreenAdapter;
+import com.blogspot.kunmii.projectagbado.utils.Helper;
 import com.blogspot.kunmii.projectagbado.utils.SpeechRecognizerHelper;
 import com.blogspot.kunmii.projectagbado.utils.UDPHelper;
 import com.blogspot.kunmii.projectagbado.utils.Utils;
@@ -115,7 +106,7 @@ public class MainActivity extends Activity {
     private GoogleApiClient mGoogleApiClient;
     public DataApi.DataListener dataListener;
 
-    ScreenAdapter adapter = null;
+    Helper adapter = null;
 
     //Needed for the dynamic tilt centering; The positon of the watch at touch point becomes the new center
     boolean screenTouched = false;
@@ -164,14 +155,6 @@ public class MainActivity extends Activity {
         mSensorHelper = SensorHelper.getInstance(this);
 
 
-        //check for audio
-        audioAvailable = Utils.checkAudioDeviceAvailability(this);
-
-        listeningAwakeAudio = MediaPlayer.create(this, R.raw.awake);
-        commandSuccessfulAudio = MediaPlayer.create(this, R.raw.error2);
-        errorAudio = MediaPlayer.create(this, R.raw.success);
-
-
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
             public void onLayoutInflated(final WatchViewStub stub) {
@@ -192,9 +175,60 @@ public class MainActivity extends Activity {
                 });
 
 
-                ViewPager viewPager = (ViewPager) stub.findViewById(R.id.viewPager);
-                adapter = new ScreenAdapter((MainActivity) activity);
-                viewPager.setAdapter(adapter);
+
+                //ViewPager viewPager = (ViewPager) stub.findViewById(R.id.viewPager);
+                adapter = new Helper((MainActivity) activity);
+
+                View configButtonLayout = stub.findViewById(R.id.menuLayout);
+
+                adapter.mStatusTextView.setText(ip);
+
+                dataListener = new DataApi.DataListener() {
+                    @Override
+                    public void onDataChanged(DataEventBuffer dataEvents) {
+                        for (DataEvent event : dataEvents) {
+                            if (event.getType() == DataEvent.TYPE_CHANGED) {
+                                // DataItem changed
+                                DataItem item = event.getDataItem();
+                                if (item.getUri().getPath().compareTo(Utils.DATA_PATH) == 0) {
+                                    DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+                                    ip = dataMap.getString(Utils.IP_SETTINGS_KEY);
+                                    SharedPreferences.Editor editSettings = preferencesCompat.edit();
+                                    editSettings.putString(Utils.IP_SETTINGS_KEY, ip);
+                                    editSettings.apply();
+                                    editSettings.commit();
+                                    activity.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            adapter.mStatusTextView.setText("IP changed please restart");
+                                        }
+                                    });
+
+                                }
+                            } else if (event.getType() == DataEvent.TYPE_DELETED) {
+                                // DataItem deleted
+                            }
+                        }
+                    }
+                };
+
+                adapter.listview = (WearableListView) stub.findViewById(R.id.wearable_list);
+                adapter.menuListViewAdapter = new AdapterWearable(activity.getApplicationContext(), adapter.configItems);
+                adapter.listview.setAdapter(adapter.menuListViewAdapter);
+
+                adapter.prepUpMenuListView();
+
+                configButtonLayout.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        adapter.showSettingsListView();
+                    }
+                });
+
+
+
+                //end here
+
 
 
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -233,18 +267,6 @@ public class MainActivity extends Activity {
                     }
                 }).start();
 
-
-                //SPEEEEEEEECH RECOGNIZER PART
-
-                // Check if user has given permission to record audio
-                int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
-                if (permissionCheck == PackageManager.PERMISSION_DENIED) {
-                    ActivityCompat.requestPermissions(activity, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSIONS_REQUEST_RECORD_AUDIO);
-                    return;
-                }
-
-                //runSpeechRecognizerSetup();
-
                 mSensorHelper.addAccelerometerListener(new ISensorUpdateListener() {
                     @Override
                     public void onUpdate(float[] sensorValues) {
@@ -266,50 +288,7 @@ public class MainActivity extends Activity {
                         //FOR GYRO
                         mLinearAcceleration = values.clone();
 
-                        //WATCH FACE DOWN
 
-                        /*
-                        if (mGravity != null) {
-                            if (!listening) {
-                                if (mGravity[2] < -9 && Math.abs(mGravity[0]) < 4 && Math.abs(mGravity[1]) < 4) {
-                                    listening = true;
-                                    vibrateDevice(new long[]{0, 50, 100, 50});
-
-                                    if(adapter.mSpeechStatusTextView!=null)
-                                    adapter.mSpeechStatusTextView.setText("Listening for Keyword");
-                                    speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.KEYWORD_CALLS);
-                                    freeMode = false;
-                                }
-                            }
-                        }
-                        */
-                        /*
-                        //SHAKE
-                        if(lastUpdate==0){
-                            lastUpdate = System.currentTimeMillis();
-                            return;
-                        }
-                        long curTime = System.currentTimeMillis();
-
-                        // only allow one update every 100ms.
-                        if ((curTime - lastUpdate) > 100) {
-                            long diffTime = (curTime - lastUpdate);
-                            lastUpdate = curTime;
-
-                            float x = values[0];
-                            float y = values[1];
-                            float z = values[2];
-
-                            float speed = Math.abs(x+y+z - last_x - last_y - last_z) / diffTime * 10000;
-
-                            if (speed > SHAKE_THRESHOLD) {
-                                vibrateDevice(new long[]{0,50,100,50});
-                                mSpeechStatusTextView.setText("Listening for Keyword");
-                                speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.KEYWORD_CALLS);
-                                freeMode = false;
-                            }
-                    }
-                    */
                     }
                 });
 
@@ -485,133 +464,7 @@ public class MainActivity extends Activity {
     }
 
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode == PERMISSIONS_REQUEST_RECORD_AUDIO) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                runSpeechRecognizerSetup();
-            } else {
-                finish();
-            }
-        }
-    }
-
-    public void runSpeechRecognizerSetup() {
-        dictionary.put("save", "Save");
-        dictionary.put("print doc", "Print");
-        dictionary.put("next", "Next");
-        dictionary.put("previous", "Previous");
-        dictionary.put("print", "Print");
-        dictionary.put("okay", "Return");
-        dictionary.put("exit", "EXIT");
-        dictionary.put("erase", "clear");
-        dictionary.put("dictation", "dict");
-
-        if(adapter.mSpeechStatusTextView!=null)
-            adapter.mSpeechStatusTextView.setText("Setting Up Speech");
-
-
-        speechRecognizerHelper = new SpeechRecognizerHelper(activity, new SpeechRecognizerSetupListener() {
-            @Override
-            public void onSuccessfulInitialization() {
-                if(adapter.mSpeechStatusTextView!=null)
-                    adapter.mSpeechStatusTextView.setText("Speech Setup, Complete :)");
-            }
-
-            @Override
-            public void onFailedInitialization() {
-                if(adapter.mSpeechStatusTextView!=null)
-                    adapter.mSpeechStatusTextView.setText("Speech Setup, FAILED :(");
-            }
-        });
-        speechRecognizerHelper.startInitialization(new RecognitionListener() {
-            @Override
-            public void onBeginningOfSpeech() {
-                if(adapter.mSpeechStatusTextView!=null)
-                    adapter.mSpeechStatusTextView.setText("Listening");
-            }
-
-            @Override
-            public void onEndOfSpeech() {
-                if(adapter.mSpeechStatusTextView!=null)
-                    adapter.mSpeechStatusTextView.setText("Speech Setup, Complete :)");
-                speechRecognizerHelper.pauseRecognizer();
-            }
-
-            @Override
-            public void onPartialResult(Hypothesis hypothesis) {
-
-            }
-
-            @Override
-            public void onResult(Hypothesis hypothesis) {
-                speechRecognizerHelper.pauseRecognizer();
-                if (hypothesis != null) {
-                    String speech = hypothesis.getHypstr();
-                    if (dictionary.containsKey(speech)) {
-                        //play victory
-                        playAudio(commandSuccessfulAudio);
-                        if (dictionary.get(speech).compareTo("dict") != 0) {
-                            transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, dictionary.get(speech)));
-                            vibrateDevice(new long[]{0, 50});
-                            speechRecognizerHelper.pauseRecognizer();
-                            listening = false;
-
-                        } else {
-                            freeMode = true;
-                            vibrateDevice(new long[]{0, 100, 200, 100, 200, 400});
-                            if(adapter.mSpeechStatusTextView!=null)
-                                adapter.mSpeechStatusTextView.setText("Start Dictating");
-                            speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.FREE_FORM);
-                            return;
-                        }
-
-                        //speechRecognizerHelper.switchSearch(SpeechRecognizerHelper.WAKEUP_CALL);
-                    }
-
-
-                    if (freeMode) {
-                        transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, "enter " + hypothesis.getHypstr()));
-                        vibrateDevice(new long[]{0,100});
-                    } else {
-                        listening = false;
-                        freeMode = false;
-                        Log.d("Kunmi", hypothesis.getHypstr());
-                        if(adapter.mSpeechStatusTextView!=null)
-                            adapter.mSpeechStatusTextView.setText("Speech Sleeping");
-                    }
-                } else {
-                    listening = false;
-                    freeMode = false;
-                    Log.d("Kunmi", hypothesis.getHypstr());
-                    if(adapter.mSpeechStatusTextView!=null)
-                        adapter.mSpeechStatusTextView.setText("Speech Sleeping");
-                }
-            }
-
-            @Override
-            public void onError(Exception e) {
-                if(adapter.mSpeechStatusTextView!=null)
-                    adapter.mSpeechStatusTextView.setText("Speech: " + e.getMessage());
-            }
-
-            @Override
-            public void onTimeout() {
-                //play timeout
-                playAudio(errorAudio);
-                freeMode = false;
-                if(adapter.mSpeechStatusTextView!=null)
-                adapter.mSpeechStatusTextView.setText("Speech Sleeping");
-                speechRecognizerHelper.pauseRecognizer();
-                listening = false;
-            }
-        });
-
-
-    }
 
     public void transferToNetworkHelper(final String message) {
         try {
@@ -625,48 +478,8 @@ public class MainActivity extends Activity {
         }*/
     }
 
-    public void playAudio(MediaPlayer player) {
-        Log.d("AUDIO ", "Audio Avialable: " + audioAvailable);
-        if (audioAvailable)
-            player.start();
-    }
-
-    public void vibrateDevice(long[] pattern) {
-        long[] vibrationPattern = pattern;
-        //-1 - don't repeat
-        final int indexInPatternToRepeat = -1;
-        vibrator.vibrate(vibrationPattern, indexInPatternToRepeat);
-    }
-
-
-
-
     private static final int SPEECH_REQUEST_CODE = 777;
 
-    public void testGoogleSpeechRecognizer() {
-
-// Create an intent that can start the Speech Recognizer activity
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-// Start the activity, the intent will be populated with the speech text
-        startActivityForResult(intent, SPEECH_REQUEST_CODE);
-
-    }
-
-
-    // This callback is invoked when the Speech Recognizer returns.
-// This is where you process the intent and extract the speech text from the intent.
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode,
-                                    Intent data) {if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK) {
-            List<String> results = data.getStringArrayListExtra(
-                    RecognizerIntent.EXTRA_RESULTS);
-            String spokenText = results.get(0);
-            transferToNetworkHelper(Utils.buildJson(Utils.DataType.SPEECH, spokenText));
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
 
 
     @Override

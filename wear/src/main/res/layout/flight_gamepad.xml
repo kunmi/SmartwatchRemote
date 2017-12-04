@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/buttonInactive"
+    android:focusable="true">
+
+
+
+    <!-- Left Button -->
+    <LinearLayout
+        android:id="@+id/leftButton"
+        android:layout_width="@dimen/button_size"
+        android:layout_height="@dimen/flight_button_size"
+        android:layout_alignParentLeft="true"
+        android:layout_centerInParent="true"
+        android:layout_marginBottom="@dimen/button_margin"
+        android:layout_marginTop="@dimen/button_margin"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:background="@color/buttonInactive"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        >
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="&#9664;"
+            android:textColor="@color/white"
+            android:textSize="@dimen/icon_text_size" />
+
+
+    </LinearLayout>
+
+
+    <!-- Right Button -->
+    <LinearLayout
+        android:id="@+id/rightButton"
+        android:layout_marginBottom="@dimen/button_margin"
+        android:layout_marginTop="@dimen/button_margin"
+        android:layout_centerInParent="true"
+        android:layout_width="@dimen/button_size"
+        android:layout_height="@dimen/flight_button_size"
+        android:layout_alignParentEnd="true"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@color/buttonInactive"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="&#9654;"
+            android:textSize="@dimen/icon_text_size"
+            android:textColor="@color/white"/>
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/actionButton"
+        android:layout_width="80dp"
+        android:layout_height="@dimen/flight_button_size"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:background="@color/buttonInactive"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+>
+
+
+        <LinearLayout
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/wl_circle"
+            android:orientation="horizontal"/>
+
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:gravity="center">
+
+        <TextView
+            android:layout_marginLeft="4dp"
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="disconnectedX"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textSize="12sp"
+            android:clickable="false"/>
+
+    <!-- Exit Button -->
+    <LinearLayout
+        android:id="@+id/menuLayout"
+        android:layout_weight="2"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:background="@color/buttonInactive"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        >
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="X" />
+
+    </LinearLayout>
+
+
+    </LinearLayout>
+
+
+</RelativeLayout>
